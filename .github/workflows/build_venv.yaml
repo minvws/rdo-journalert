@@ -13,8 +13,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install required libraries
+        run: apt install libsystemd
+
       - name: prep
         run: sudo mkdir -p /usr/local/rdo-journalert/current/
+
       - name: prep chown
         run: sudo chown `id -u`:`id -g` /usr/local/rdo-journalert/current/
 
