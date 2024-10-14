@@ -14,11 +14,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Create version.json
         run: |
-          echo "{ \"version\": \"${{ env.RELEASE_VERSION }}\", \"git_ref\": \"$GITHUB_SHA\"}" > rdo-journalert/version.json
+          echo "{ \"version\": \"${{ env.RELEASE_VERSION }}\", \"git_ref\": \"$GITHUB_SHA\"}" > rdo-journalert-private/version.json
       - name: Create tar
-        run: tar -czf rdo-journalert_${{ env.RELEASE_VERSION }}.tar.gz rdo-journalert
+        run: tar -czf rdo-journalert-private_${{ env.RELEASE_VERSION }}.tar.gz rdo-journalert-private
       - name: Upload release tar
         uses: actions/upload-artifact@v4
         with:
-          name: rdo-journalert_${{ env.RELEASE_VERSION }}
-          path: rdo-journalert_${{ env.RELEASE_VERSION }}.tar.gz
+          name: rdo-journalert-private_${{ env.RELEASE_VERSION }}
+          path: rdo-journalert-private_${{ env.RELEASE_VERSION }}.tar.gz
