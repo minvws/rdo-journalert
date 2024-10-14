@@ -1,0 +1,19 @@
+journal_remote_directory: /var/log/journal/remote
+allow_list: allow_list.txt
+allow_list_forced: allow_list_forced.txt
+allow_list_human_readable: allow_list_human_readable.txt
+keywords: ['error', 'fatal', 'critical', 'failure', 'traceback', 'failed']
+learning_mode: True
+fuzzy_threshold_percent: 85
+fuzzy_threshold_percent_forced: 70
+journal_window_seconds: 10
+window_overlap_extra_seconds: 0.5
+debug: False
+debug_level: 0
+cls: False
+icinga_alert_file: /opt/journalert/icinga/icinga_alert.txt
+output_log_file: /opt/journalert/logs/journalert_alert_log
+output_log_file_learning_mode: /opt/journalert/logs/journalert_learning_mode
+icinga_interval_seconds: 300
+icinga_max_hosts: 10
+log_size_max_bytes: 1024
