@@ -19,9 +19,9 @@ jobs:
         run: |
           echo "{ \"version\": \"${{ env.RELEASE_VERSION }}\", \"git_ref\": \"$GITHUB_SHA\"}" > journalert/version.json
       - name: Create tar
-        run: tar -czf rdo-journalert-private_${{ env.RELEASE_VERSION }}.tar.gz .
+        run: tar -czf /tmp/rdo-journalert-private_${{ env.RELEASE_VERSION }}.tar.gz .
       - name: Upload release tar
         uses: actions/upload-artifact@v4
         with:
           name: rdo-journalert-private_${{ env.RELEASE_VERSION }}
-          path: rdo-journalert-private_${{ env.RELEASE_VERSION }}.tar.gz
+          path: /tmp/rdo-journalert-private_${{ env.RELEASE_VERSION }}.tar.gz
