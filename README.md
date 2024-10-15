@@ -32,3 +32,5 @@ a file for Nagios / Icinga to process.
 4. Install the systemd service file in /etc/systemd/system
 5. Install + edit NRPE comand files and scripts for Nagios / Icinga alerting.
 6. start the journalert service
+
+# Example logs
