@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+#
+# This script is meant to be run via NRPE
+#
+# This script reads the icinga_alert_file and tries to determine
+# the appropriate EXIT code based on its contents
+#
+# The echo output is picked up by Nagios / Icinga to display in
+# warnings / errors
+
 set -uo pipefail
 ALERT_FILE=$1
 IFS=$'\n'
@@ -11,7 +20,7 @@ then
 fi
 
 DISPLAY_RESULT=`cat $ALERT_FILE`
-RESULT=`echo $DISPLAY_RESULT | grep "OK:"`
+RESULT=`echo $DISPLAY_RESULT | grep "^OK:"`
 ERROR=$?
 
 echo $DISPLAY_RESULT
