@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+#
+# This script is meant to be run via NRPE
+# 
+# This script determines if there are any errors 
+# generated this day until now.
+#
+# Journalert doesn't create an alert log file
+# if no alerts are received.
+#
 set -uo pipefail
 LOG_FILE=$1
 TODAY=$(date '+%Y_%m_%d')
