@@ -11,7 +11,7 @@ only alerts on new unknown errors, not on errors previously learned. New errors
 are matched against known errors and if _similar_, won't report on them.
 
 Journalert is build to alert to Nagios / Icinga. The alert status is written to
-a file for Nagios / Icinga to
+a file for Nagios / Icinga to process.
 
 # Prerequisites
 
