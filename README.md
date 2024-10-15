@@ -11,7 +11,7 @@ only alerts on new unknown errors, not on errors previously learned. New errors
 are matched against known errors and if _similar_, won't report on them.
 
 Journalert is build to alert to Nagios / Icinga. The alert status is written to
-a file for Nagios / Icinga to process.
+a file for the monitoring system to process.
 
 # Prerequisites
 
@@ -32,5 +32,3 @@ a file for Nagios / Icinga to process.
 4. Install the systemd service file in /etc/systemd/system
 5. Install + edit NRPE comand files and scripts for Nagios / Icinga alerting.
 6. start the journalert service
-
-# Example logs
