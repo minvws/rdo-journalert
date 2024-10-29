@@ -1,0 +1,38 @@
+# Systemd-journal-remote stores client log files in this directory
+journal_remote_directory: /var/log/journal/remote
+# Stores learned alerts in non-readable format that improves matching
+allow_list: "/opt/journalert/allow_list.txt"
+allow_list_forced: "/opt/journalert/allow_list_forced.txt"
+# Human readable list of host and allow-listed alerts
+allow_list_human_readable: /opt/journalert/allow_list_human_readable.txt"
+# The keywords we use to initially filter out log messages 'of interest'
+keywords: ["error", "fatal", "critical", "failure", "traceback", "failed"]
+# Learning mode vs alerting mode - no alerts in learning mode
+learning_mode: true
+# Fuzzy matches above this threshold (percent) will be judged as a 'match'
+fuzzy_threshold_percent: 85 # can be tweaked to prevent false-positives / false-negative 'known/unknown' matches
+fuzzy_threshold_percent_forced: 70
+# Interval over which alerts are processed. Should not be set below 5 seconds.
+journal_window_seconds: 10
+# to make sure we don't drop logs we substract this amount from journal_window_seconds
+window_overlap_extra_seconds: 0.5
+# Debug mode is only used for development / throubleshooting
+debug: false
+debug_level: 1 # [1,2,3]
+# clear screen when debugging behaves like 'watch'
+cls: False
+# A file is created in this directory that is picked up by the journalert.sh script to generate Icinga alerts
+icinga_log_directory: "/opt/journalert/icinga"
+icinga_alert_file: "icinga_alert.txt"
+# Icinga is updated this often
+icinga_interval_seconds: 300
+# How many hosts reported in Icinga status message
+icinga_max_hosts: 10
+# Where 'journalert' logs are stored
+output_log_directory: /var/log/journalert
+# File contains log messages marked as 'error'
+output_log_file: "journalert_alert_log"
+# File contains log messages marked as 'error' in learning mode, message it self is also stored in allowlist
+output_log_file_learning_mode: "journalert_learning_mode"
+# Max error message size, messages larger than this settings are truncated (this setting impacts performance)
+log_size_max_bytes: 1024
