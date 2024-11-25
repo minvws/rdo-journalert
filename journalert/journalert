@@ -256,6 +256,7 @@ def print_startup_messages(settings):
 
 
 def get_journal_events(settings, journal_reader, overlap=0):
+    """ We select the messages we want within a specific time frame"""
     window = settings.journal_window_seconds + overlap
     journal_reader.seek_realtime(datetime.now() - (timedelta(seconds=window)))
 
@@ -363,12 +364,6 @@ def debug_print_log_lines(settings, unknown_alerts, known_alerts, log):
                 log.log(f"> {event.raw_message[:200]}", 1)
                 # log.log(f"DEBUG: {event.debug}", 1)
 
-def debug_write_logs_to_disk(events):
-    with open('debug.txt', 'a') as f:
-        for event in events:
-            f.write(f"{event['MESSAGE']}\n")
-
-
 def process_log_data_from_systemd(settings, journal_reader):
 
     allow_list_obj = LogAllowList(settings)
@@ -390,30 +385,24 @@ def process_log_data_from_systemd(settings, journal_reader):
         known_alerts_score_avg = None
 
         get_journal_events(settings, journal_reader, settings.window_overlap_extra_seconds)
-        events = []
-        start = time.time()
-        for event in journal_reader:
-            events.append(event)
-        debug_write_logs_to_disk(events)
+        events = [event for event in journal_reader] 
         
-        end = time.time()
-        duration = round(end - start, 6)
-        log.log(f"Systemd event list collection duration: {duration}", 3)
-
         processed_events = process_events_list(settings, events, allow_list_obj, log)
         [
             (known_alerts.append(event), known_alerts_hashes.append(event.message_hash))
             for event in processed_events
             if event.known and event.message_hash not in known_alerts_hashes
         ]
-        [unknown_alerts.append(event) for event in processed_events if not event.known]
+        unknown_alerts = [event for event in processed_events if not event.known]
         message_max, message_mean = get_message_size_statistics(processed_events)
 
         debug_print_log_lines(settings, unknown_alerts, known_alerts, log)
 
+        # Icinga Status Update
         log.log("Updating Icinga alerts", 3)
         icinga_obj.process_events(unknown_alerts)
 
+        # Write unknown errors to log file
         if len(unknown_alerts) > 0:
             log.log("Writing errors to file", 3)
             logger_obj.write_logs(unknown_alerts)
@@ -422,6 +411,7 @@ def process_log_data_from_systemd(settings, journal_reader):
             score_unknown, score_known, unknown_alerts, known_alerts, log
         )
 
+        # In learning mode update allow_list.txt
         if settings.learning_mode:
             if len(unknown_alerts) > 0:
                 log.log("update allow list...", 3)
