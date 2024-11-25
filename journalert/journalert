@@ -138,9 +138,6 @@ class LogEventClass:
         return sanitized
 
     def sanitize_event(self):
-        # self.sanitized_message = remove_number_from_string(self.raw_message).lower().strip()
-        # self.sanitized_message = ''.join(e for e in self.sanitized_message if e.isalpha())
-        # self.sanitized_message = re.sub("\s\s+", "", self.sanitized_message)[:self.settings.log_size_max_bytes]
         self.sanitized_message = self.sanitize_data(self.raw_message)
         self.message_hash = hash(f"{self.hostname} {self.sanitized_message}")
 
@@ -379,7 +376,7 @@ def process_log_data_from_systemd(settings, journal_reader):
     icinga_obj = AlertIcingaClass(settings)
     log = MyDebugLogger(settings)
 
-    #print_startup_messages(settings)
+    print_startup_messages(settings)
     daemon.notify("READY=1")
 
     while True:
@@ -397,7 +394,6 @@ def process_log_data_from_systemd(settings, journal_reader):
         start = time.time()
         for event in journal_reader:
             events.append(event)
-            #print(event["MESSAGE"])
         debug_write_logs_to_disk(events)
         
         end = time.time()
@@ -439,7 +435,6 @@ def process_log_data_from_systemd(settings, journal_reader):
             f"| Events: {len(events):6} | Unknown: {len(unknown_alerts):5} ScoreAvg {unknown_alerts_score_avg:3}% | Known (unique): {len(known_alerts):5} ScoreAvg {known_alerts_score_avg:3}% | Avg size: {message_mean:4} | Max size: {message_max:5} | Processing {'{:.3f}'.format(round(duration,3))}s | Sleeping {'{:.3f}'.format(round(sleep_delay,3))}s |"
         )
         log.print()
-        
         time.sleep(sleep_delay)
 
 def load_settings(config_file="config.yaml"):
