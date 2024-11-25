@@ -13,10 +13,12 @@ import multiprocessing
 import signal
 import statistics
 
+
 class SettingsClass:
     def __init__(self, settings):
-         for k, v in settings.items():
-             setattr(self, k, v)
+        for k, v in settings.items():
+            setattr(self, k, v)
+
 
 class LogClass:
     def __init__(self, settings):
@@ -33,14 +35,17 @@ class LogClass:
 
     def write_logs(self, events):
         today = datetime.today().strftime("%Y_%m_%d")
-        with open(f"{self.logfile}_{today}", 'a') as f:
+        with open(f"{self.logfile}_{today}", "a") as f:
             for event in events:
-                f.write(f"{event.timestamp},{event.hostname},{event.known},{event.score},{event.raw_message}\n")
+                f.write(
+                    f"{event.timestamp},{event.hostname},{event.known},{event.score},{event.raw_message}\n"
+                )
 
     def _check_writable_log_file(self):
         today = datetime.today().strftime("%Y_%m_%d")
-        with open(f"{self.logfile}_{today}", 'a+') as f:
+        with open(f"{self.logfile}_{today}", "a+") as f:
             pass
+
 
 class LogAllowList:
     def __init__(self, settings):
@@ -54,26 +59,33 @@ class LogAllowList:
 
     def _load_message_allow_list(self, allow_list_file):
         if os.path.exists(allow_list_file):
-            with open(allow_list_file, 'r') as f:
+            with open(allow_list_file, "r") as f:
                 return f.read().splitlines()
 
     def load_message_allow_lists(self):
         self.allow_list = self._load_message_allow_list(self.settings.allow_list)
-        self.allow_list_forced = self._load_message_allow_list(self.settings.allow_list_forced)
+        self.allow_list_forced = self._load_message_allow_list(
+            self.settings.allow_list_forced
+        )
 
     def update_allow_list(self, events):
         written_events_hashes = []
-        with open(self.settings.allow_list, 'a+') as f:
-            with open(self.settings.allow_list_human_readable, 'a+') as d:
+        written_events_sanitized = []
+        with open(self.settings.allow_list, "a+") as f:
+            with open(self.settings.allow_list_human_readable, "a+") as d:
                 for event in events:
-                    if event.sanitized_message not in self.allow_list and event.message_hash not in written_events_hashes:
+                    if (
+                        event.sanitized_message not in self.allow_list
+                        and event.message_hash not in written_events_hashes
+                        and event.sanitized_message not in written_events_sanitized
+                    ):
                         written_events_hashes.append(event.message_hash)
+                        written_events_sanitized.append(event.sanitized_message)
                         f.write(f"{event.sanitized_message}\n")
                         d.write(f"{event.hostname} | {event.raw_message}\n")
 
-
     def _check_writable_allow_list(self):
-        with open(self.settings.allow_list, 'a+') as f:
+        with open(self.settings.allow_list, "a+") as f:
             pass
 
 
@@ -92,12 +104,19 @@ class LogEventClass:
         self.timestamp = None
         self.message_hash = None
         self.message_length = 0
-        #self.debug = None
+        # self.debug = None
         self.initialize()
 
     def process_event_timestamps(self):
-        fields = ['_SOURCE_REALTIME_TIMESTAMP', '_REALTIME_TIMESTAMP', '__REALTIME_TIMESTAMP', 'SYSLOG_TIMESTAMP']
-        self.timestamp = [ self.event[key] for key in self.event.keys() if key in fields][0]
+        fields = [
+            "_SOURCE_REALTIME_TIMESTAMP",
+            "_REALTIME_TIMESTAMP",
+            "__REALTIME_TIMESTAMP",
+            "SYSLOG_TIMESTAMP",
+        ]
+        self.timestamp = [
+            self.event[key] for key in self.event.keys() if key in fields
+        ][0]
 
     def initialize(self):
         try:
@@ -114,14 +133,11 @@ class LogEventClass:
 
     def sanitize_data(self, data):
         sanitized = remove_number_from_string(data).lower().strip()
-        sanitized = ''.join(e for e in sanitized if e.isalpha())
-        sanitized = re.sub("\s\s+", "", sanitized)[:self.settings.log_size_max_bytes]
+        sanitized = "".join(e for e in sanitized if e.isalpha())
+        sanitized = re.sub("\s\s+", "", sanitized)[: self.settings.log_size_max_bytes]
         return sanitized
 
     def sanitize_event(self):
-        #self.sanitized_message = remove_number_from_string(self.raw_message).lower().strip()
-        #self.sanitized_message = ''.join(e for e in self.sanitized_message if e.isalpha())
-        #self.sanitized_message = re.sub("\s\s+", "", self.sanitized_message)[:self.settings.log_size_max_bytes]
         self.sanitized_message = self.sanitize_data(self.raw_message)
         self.message_hash = hash(f"{self.hostname} {self.sanitized_message}")
 
@@ -131,7 +147,14 @@ class LogEventClass:
     def score_event(self):
         if self.error:
             scorer = fuzz.ratio
-            self.score = round(process.extractOne(self.sanitized_message, self.allow_list_obj.allow_list, scorer=scorer)[1],2)
+            self.score = round(
+                process.extractOne(
+                    self.sanitized_message,
+                    self.allow_list_obj.allow_list,
+                    scorer=scorer,
+                )[1],
+                2,
+            )
             self.score_forced = 0
             for line in self.allow_list_obj.allow_list_forced:
                 if self.sanitize_data(line) in self.sanitized_message:
@@ -144,7 +167,8 @@ class LogEventClass:
             if self.score_forced >= self.settings.fuzzy_threshold_percent_forced:
                 self.known = True
 
-class AlertIcingaClass():
+
+class AlertIcingaClass:
     def __init__(self, settings):
         self.settings = settings
         self.init = True
@@ -169,27 +193,35 @@ class AlertIcingaClass():
     def _generate_message(self):
         if self.settings.learning_mode:
             self.message = "OK: Journalert running in learning mode. | errors: 0"
-        elif len(self.events) > 0: # if we have received error events
+        elif len(self.events) > 0:  # if we have received error events
             number_of_hosts = len(set(self.hosts))
             hosts = list(set(self.hosts))
-            hosts = " ".join(hosts[:(self.settings.icinga_max_hosts-1)])
+            hosts = " ".join(hosts[: (self.settings.icinga_max_hosts - 1)])
             self.message = f"Warning: {number_of_hosts} host{'s'[:number_of_hosts^1]} reported errors ({hosts}) | errors: {len(self.events)}"
         else:
-            self.message = f"OK: no unknown errors | known errors: {len(self.events)} | errors: 0"
+            self.message = (
+                f"OK: no unknown errors | known errors: {len(self.events)} | errors: 0"
+            )
 
     def _write_to_file(self):
-        if is_current_time_outside_last_period(self.timestamp, self.settings.icinga_interval_seconds) or self.init:
-            with open(self.settings.icinga_alert_file, 'w') as f:
+        if (
+            is_current_time_outside_last_period(
+                self.timestamp, self.settings.icinga_interval_seconds
+            )
+            or self.init
+        ):
+            with open(self.settings.icinga_alert_file, "w") as f:
                 f.write(f"{self.message}\n")
                 self.timestamp = datetime.now()
                 self.events = []
                 self.init = False
 
     def _check_writable_icinga_file(self):
-        with open(self.settings.icinga_alert_file, 'a+') as f:
+        with open(self.settings.icinga_alert_file, "a+") as f:
             pass
 
-class MyDebugLogger():
+
+class MyDebugLogger:
     def __init__(self, settings):
         self.debug = settings.debug
         self.debug_level = settings.debug_level
@@ -208,9 +240,11 @@ class MyDebugLogger():
                 print(f"{message}")
             self.messages = []
 
+
 def remove_number_from_string(event):
-    pattern = r'[0-9]'
-    return re.sub(pattern, '', event)
+    pattern = r"[0-9]"
+    return re.sub(pattern, "", event)
+
 
 def print_startup_messages(settings):
     if settings.debug:
@@ -220,12 +254,16 @@ def print_startup_messages(settings):
     else:
         print("🚨 ALERT MODE ENABLED    🚨")
 
+
 def get_journal_events(settings, journal_reader, overlap=0):
+    """ We select the messages we want within a specific time frame"""
     window = settings.journal_window_seconds + overlap
     journal_reader.seek_realtime(datetime.now() - (timedelta(seconds=window)))
 
+
 def is_current_time_outside_last_period(timestamp, age_sec):
     return datetime.now() > timestamp + timedelta(seconds=age_sec)
+
 
 def calculate_duration_overlap(settings, start, end):
     interval = settings.journal_window_seconds
@@ -239,9 +277,11 @@ def calculate_duration_overlap(settings, start, end):
             sleep_delay = 0
     return duration, sleep_delay
 
+
 def sigterm_handler(signal, frame):
     print("Received sigterm, bye!..")
     sys.exit(0)
+
 
 def process_single_event(event):
     event.sanitize_event()
@@ -249,6 +289,7 @@ def process_single_event(event):
     event.score_event()
     event.determine_if_known_event()
     return event
+
 
 def process_events_list(settings, events, allow_list_obj, log):
     event_object_list = []
@@ -258,7 +299,7 @@ def process_events_list(settings, events, allow_list_obj, log):
     for event in events:
         event_object_list.append(LogEventClass(settings, event, allow_list_obj))
     end = time.time()
-    duration = round(end - start,6)
+    duration = round(end - start, 6)
     log.log(f"Object list: {duration}s", 3)
 
     start = time.time()
@@ -268,16 +309,18 @@ def process_events_list(settings, events, allow_list_obj, log):
         p.join()
         p.terminate
     end = time.time()
-    duration = round(end - start,6)
-    log.log(f"Multiprocessing: {duration}s",3)
-    return [ item for item in result if item.error ]
+    duration = round(end - start, 6)
+    log.log(f"Multiprocessing: {duration}s", 3)
+    return [item for item in result if item.error]
+
 
 def get_message_size_statistics(events):
     if len(events) > 0:
         values = [event.message_length for event in events]
     else:
         values = [0]
-    return max(values), int(round(statistics.mean(values),0))
+    return max(values), int(round(statistics.mean(values), 0))
+
 
 def process_score_stats(score_unknown, score_known, unknown_alerts, known_alerts, log):
     unknown_alerts_score_avg = None
@@ -297,7 +340,7 @@ def process_score_stats(score_unknown, score_known, unknown_alerts, known_alerts
     if score_known:
         known_alerts_score_avg = statistics.mean(score_known)
     else:
-        known_alerts_score_avg  = 0
+        known_alerts_score_avg = 0
     score_known = []
     return round(unknown_alerts_score_avg), round(known_alerts_score_avg)
 
@@ -306,14 +349,20 @@ def debug_print_log_lines(settings, unknown_alerts, known_alerts, log):
     if settings.debug:
         if len(unknown_alerts) > 0 and len(unknown_alerts) < 100:
             for event in unknown_alerts:
-                log.log(f"{event.hostname:15} Score: {event.score:3} Known: {event.known} {event.score_forced:3} {event.timestamp} {event.message_hash}",1)
-                log.log(f"> {event.raw_message[:200]}",1)
-                #log.log(f"DEBUG: {event.debug}", 1)
+                log.log(
+                    f"{event.hostname:15} Score: {event.score:3} Known: {event.known} {event.score_forced:3} {event.timestamp} {event.message_hash}",
+                    1,
+                )
+                log.log(f"> {event.raw_message[:200]}", 1)
+                # log.log(f"DEBUG: {event.debug}", 1)
         if len(known_alerts) > 0 and len(known_alerts) < 10:
             for event in known_alerts:
-                log.log(f"{event.hostname:15} Score: {event.score:3} Known: {event.known} {event.score_forced:3} {event.timestamp} {event.message_hash}|",1)
-                log.log(f"> {event.raw_message[:200]}",1)
-                #log.log(f"DEBUG: {event.debug}", 1)
+                log.log(
+                    f"{event.hostname:15} Score: {event.score:3} Known: {event.known} {event.score_forced:3} {event.timestamp} {event.message_hash}|",
+                    1,
+                )
+                log.log(f"> {event.raw_message[:200]}", 1)
+                # log.log(f"DEBUG: {event.debug}", 1)
 
 def process_log_data_from_systemd(settings, journal_reader):
 
@@ -323,11 +372,10 @@ def process_log_data_from_systemd(settings, journal_reader):
     log = MyDebugLogger(settings)
 
     print_startup_messages(settings)
-    daemon.notify('READY=1')
-
+    daemon.notify("READY=1")
 
     while True:
-        start_run = time.time() # we measure processing time
+        start_run = time.time()  # we measure processing time
         unknown_alerts = []
         known_alerts = []
         known_alerts_hashes = []
@@ -336,52 +384,57 @@ def process_log_data_from_systemd(settings, journal_reader):
         unknown_alerts_score_avg = None
         known_alerts_score_avg = None
 
-        get_journal_events(settings, journal_reader)
-        events = []
-        start = time.time()
-        for event in journal_reader:
-            events.append(event)
-        end = time.time()
-        duration = round(end - start,6)
-        log.log(f"Systemd event list collection duration: {duration}",3)
-
+        get_journal_events(settings, journal_reader, settings.window_overlap_extra_seconds)
+        events = [event for event in journal_reader] 
+        
         processed_events = process_events_list(settings, events, allow_list_obj, log)
-        [(known_alerts.append(event), known_alerts_hashes.append(event.message_hash)) for event in processed_events if event.known and event.message_hash not in known_alerts_hashes]
-        [unknown_alerts.append(event) for event in processed_events if not event.known]
+        [
+            (known_alerts.append(event), known_alerts_hashes.append(event.message_hash))
+            for event in processed_events
+            if event.known and event.message_hash not in known_alerts_hashes
+        ]
+        unknown_alerts = [event for event in processed_events if not event.known]
         message_max, message_mean = get_message_size_statistics(processed_events)
 
         debug_print_log_lines(settings, unknown_alerts, known_alerts, log)
 
-        log.log("Updating Icinga alerts",3)
+        # Icinga Status Update
+        log.log("Updating Icinga alerts", 3)
         icinga_obj.process_events(unknown_alerts)
 
+        # Write unknown errors to log file
         if len(unknown_alerts) > 0:
-            log.log("Writing errors to file",3)
+            log.log("Writing errors to file", 3)
             logger_obj.write_logs(unknown_alerts)
 
-        unknown_alerts_score_avg, known_alerts_score_avg = process_score_stats(score_unknown, score_known, unknown_alerts, known_alerts, log)
+        unknown_alerts_score_avg, known_alerts_score_avg = process_score_stats(
+            score_unknown, score_known, unknown_alerts, known_alerts, log
+        )
 
+        # In learning mode update allow_list.txt
         if settings.learning_mode:
             if len(unknown_alerts) > 0:
-                log.log("update allow list...",3)
+                log.log("update allow list...", 3)
                 allow_list_obj.update_allow_list(unknown_alerts)
             allow_list_obj.load_message_allow_lists()
 
-        journal_reader.wait(0) # Detect new remote host log files
+        journal_reader.wait(0)  # Detect new remote host log files
         end_run = time.time()
         duration, sleep_delay = calculate_duration_overlap(settings, start_run, end_run)
-        print(f"| Events: {len(events):6} | Unknown: {len(unknown_alerts):5} ScoreAvg {unknown_alerts_score_avg:3}% | Known (unique): {len(known_alerts):5} ScoreAvg {known_alerts_score_avg:3}% | Avg size: {message_mean:4} | Max size: {message_max:5} | Processing {'{:.3f}'.format(round(duration,3))}s | Sleeping {'{:.3f}'.format(round(sleep_delay,3))}s |")
+        print(
+            f"| Events: {len(events):6} | Unknown: {len(unknown_alerts):5} ScoreAvg {unknown_alerts_score_avg:3}% | Known (unique): {len(known_alerts):5} ScoreAvg {known_alerts_score_avg:3}% | Avg size: {message_mean:4} | Max size: {message_max:5} | Processing {'{:.3f}'.format(round(duration,3))}s | Sleeping {'{:.3f}'.format(round(sleep_delay,3))}s |"
+        )
         log.print()
         time.sleep(sleep_delay)
 
-
-def load_settings(config_file = "config.yaml"):
+def load_settings(config_file="config.yaml"):
     try:
         with open(config_file) as f:
             return yaml.safe_load(f)
     except FileNotFoundError:
         print(f"Config file {config_file} not found")
         sys.exit(1)
+
 
 def get_config_file(arg):
     config_file = None
@@ -391,6 +444,7 @@ def get_config_file(arg):
         print(f"Usage {sys.argv[0]} <config filename>")
         sys.exit(1)
     return config_file
+
 
 def main():
     signal.signal(signal.SIGTERM, sigterm_handler)
@@ -405,5 +459,5 @@ def main():
         print("Keyboard control-c")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
