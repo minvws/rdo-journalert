@@ -31,7 +31,8 @@ a file for the monitoring system to process.
    (/usr/local/journalert, /opt/journalert, etc)
 3. Edit config.yaml and change settings to your needs, take a particular
    interest in the 'keywords' section.
-4. Install the systemd service file in /etc/systemd/system
+4. Install the [systemd service](journalert/systemd/journalert.service)
+   file in /etc/systemd/system (edit parameters where relevant)
 5. Install + edit NRPE comand files and scripts for Nagios / Icinga alerting.
 6. start the journalert service
 
