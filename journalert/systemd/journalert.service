@@ -1,0 +1,33 @@
+[Unit]
+Description=journalert
+After=syslog.target
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+Type=notify
+User=journalert
+Group=journalert
+WorkingDirectory=/usr/local/rdo-journalert/current/journalert
+Environment=PYTHONUNBUFFERED=true
+
+Restart=on-failure
+RestartSec=5s
+ExecStart=/usr/local/rdo-journalert/current/.venv/bin/python3 journalert /etc/journalert/config.yaml
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rdo-journalert-journalert
+
+# Hardening
+NoNewPrivileges=True
+ProtectSystem=full
+PrivateTmp=True
+PrivateDevices=True
+ProtectClock=True
+ProtectKernelTunables=True
+ProtectKernelModules=True
+ProtectControlGroups=True
+
+
+[Install]
+WantedBy=multi-user.target
